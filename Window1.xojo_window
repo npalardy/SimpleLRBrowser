@@ -9,7 +9,7 @@ Begin Window Window1
    FullScreen      =   False
    FullScreenButton=   False
    HasBackColor    =   False
-   Height          =   400
+   Height          =   600
    ImplicitInstance=   True
    LiveResize      =   True
    MacProcID       =   0
@@ -25,11 +25,11 @@ Begin Window Window1
    Resizeable      =   True
    Title           =   "Untitled"
    Visible         =   True
-   Width           =   600
+   Width           =   900
    Begin HTMLViewer HTMLViewer1
       AutoDeactivate  =   True
       Enabled         =   True
-      Height          =   400
+      Height          =   600
       HelpTag         =   ""
       Index           =   -2147483648
       Left            =   192
@@ -45,7 +45,7 @@ Begin Window Window1
       TabStop         =   True
       Top             =   0
       Visible         =   True
-      Width           =   408
+      Width           =   708
    End
    Begin Listbox Listbox1
       AutoDeactivate  =   True
@@ -65,7 +65,7 @@ Begin Window Window1
       GridLinesVertical=   0
       HasHeading      =   False
       HeadingIndex    =   -1
-      Height          =   372
+      Height          =   572
       HelpTag         =   ""
       Hierarchical    =   True
       Index           =   -2147483648
@@ -142,6 +142,15 @@ Begin Window Window1
       Visible         =   True
       Width           =   193
    End
+   Begin Timer mOneShotTimer
+      Enabled         =   True
+      Index           =   -2147483648
+      LockedInPosition=   False
+      Mode            =   0
+      Period          =   1
+      Scope           =   2
+      TabPanelIndex   =   0
+   End
 End
 #tag EndWindow
 
@@ -188,8 +197,8 @@ End
 	#tag EndMenuHandler
 
 
-	#tag Method, Flags = &h0
-		Sub loadsearchresults()
+	#tag Method, Flags = &h1
+		Protected Sub loadsearchresults()
 		  if db is nil then
 		    return
 		  end if
@@ -231,11 +240,15 @@ End
 		End Sub
 	#tag EndMethod
 
-	#tag Method, Flags = &h0
-		Sub reloadlistbox()
-		  if db is nil then 
+	#tag Method, Flags = &h1
+		Protected Sub reloadlistbox()
+		  If db Is Nil Then 
 		    return
 		  end if
+		  
+		  HTMLViewer1.LoadPage("<html><head></head><body></body></html>", nil)
+		  
+		  Listbox1.DeleteAllRows
 		  
 		  dim rs as recordset = db.SQLSelect("select distinct type from cached_descriptions order by type")
 		  
@@ -249,9 +262,55 @@ End
 		End Sub
 	#tag EndMethod
 
+	#tag Method, Flags = &h21
+		Private Sub ShowPageWithID(pageID as Int64)
+		  // ok look up the right source html and show that
+		  
+		  Dim rs As recordset = db.sqlselect("select * from cached_blobs where cached_page_id = (select cached_page_id from cached_page_descriptions where cached_description_id = " + Str(pageID) + ")" )
+		  
+		  If rs Is Nil Then
+		    break
+		    Return
+		  End If
+		  
+		  Dim htmlText As String = ReplaceAll(htmlwrapper,"<!-- content --><!-- /content -->", rs.field("page_source").StringValue)
+		  
+		  htmlviewer1.LoadPage(htmltext, Nil)
+		  
+		End Sub
+	#tag EndMethod
 
-	#tag Property, Flags = &h0
-		db As sqlitedatabase
+	#tag Method, Flags = &h21
+		Private Sub ShowPageWithName(pageName as string)
+		  Dim rs As recordset = db.sqlselect("select id, title from cached_descriptions where title like '" + Trim(pageName) + "'")
+		  
+		  If rs Is Nil Then
+		    Break
+		    return
+		  End If
+		  // ok look up the right source html and show that
+		  
+		  rs = db.sqlselect("select * from cached_blobs where cached_page_id = (select cached_page_id from cached_page_descriptions where cached_description_id = " + Str(rs.field("id").Int64Value) + ")" )
+		  
+		  If rs Is Nil Then
+		    Break
+		    Return
+		  End If
+		  
+		  Dim htmlText As String = ReplaceAll(htmlwrapper,"<!-- content --><!-- /content -->", rs.field("page_source").StringValue)
+		  
+		  htmlviewer1.LoadPage(htmltext, Nil)
+		  
+		End Sub
+	#tag EndMethod
+
+
+	#tag Property, Flags = &h1
+		Protected db As sqlitedatabase
+	#tag EndProperty
+
+	#tag Property, Flags = &h1
+		Protected mDBKeyToLoad As String
 	#tag EndProperty
 
 
@@ -267,16 +326,74 @@ End
 		  Const cancelLoad = True
 		  Const allowload = False
 		  
-		  Break
+		  Select Case  True
+		  Case url.beginswith("about:blank") 
+		    // "about:blank" - do not cancel and allow this to load
+		    Return allowload
+		    
+		  Case url.beginswith("xojo://")
+		    // newer versions use 
+		    // xojo://<name>
+		    
+		    // strip off xojo://
+		    Dim tmpURL As String = url.Mid(Len("xojo://")+1)
+		    
+		    mOneShotTimer.mode = Timer.ModeSingle
+		    mDBKeyToLoad = tmpURL
+		    
+		    Return cancelLoad
+		    
+		  Else
+		    
+		    Break
+		    
+		    #If TargetMacOS
+		      
+		      If url.BeginsWith("applewebdata://") then
+		        // strip off applewebdata:// <GUID> /
+		        
+		        // find the remainder in the DB
+		        // and if found show that page
+		        // and cancel the load
+		        
+		        // applewebdata://E713BCD8-C6E6-42B1-86C3-D54CF1CCF65D/UserGuide:Constant_Editor cancel or show some info saying "this is not local" return true
+		        // applewebdata://FA00A5BC-AB78-4E22-8CD0-41F75192FC6C/Const.html      allow and look up right page and show it
+		        // applewebdata://32776D4A-E53D-4E9A-B29B-55744F28085F/Dictionary.html 
+		        // applewebdata://9F4E5C37-7D89-408C-9CFD-A8F948A1596C/index.php/Database_Class
+		        // applewebdata://9F4E5C37-7D89-408C-9CFD-A8F948A1596C/index.php/Thread
+		        
+		        Dim tmpURL As String = url.Mid(Len("applewebdata://")+1)
+		        Dim parts() As String = tmpurl.Split("/")
+		        
+		        if parts.Ubound > 0 then
+		          
+		          tmpUrl = parts(1).Replace(".html", "")
+		          
+		          mOneShotTimer.mode = Timer.ModeSingle
+		          mDBKeyToLoad = tmpURL
+		          
+		        End If
+		        
+		        Return cancelLoad
+		        
+		      Elseif url.BeginsWith("http://") Or url.BeginsWith("https://") Then
+		        // http://developer.xojo.com/userguide/variables-and-constants$constants - cancel show "not local" ?
+		        // we could ASK if they want to open this or not ?
+		        
+		        MsgBox "The url '" + url + "' is not local"
+		        
+		        Return cancelLoad
+		        
+		      End If
+		      
+		    #ElseIf TargetWindows
+		      
+		    #ElseIf TargetLinux
+		      
+		    #EndIf
+		    
+		  End Select
 		  
-		  // "about:blank" - do not cancel return false
-		  // applewebdata://E713BCD8-C6E6-42B1-86C3-D54CF1CCF65D/UserGuide:Constant_Editor cancel or show some info saying "this is not local" return true
-		  // applewebdata://FA00A5BC-AB78-4E22-8CD0-41F75192FC6C/Const.html      allow and look up right page and show it
-		  // applewebdata://32776D4A-E53D-4E9A-B29B-55744F28085F/Dictionary.html 
-		  // applewebdata://9F4E5C37-7D89-408C-9CFD-A8F948A1596C/index.php/Database_Class
-		  // applewebdata://9F4E5C37-7D89-408C-9CFD-A8F948A1596C/index.php/Thread
-		  
-		  // http://developer.xojo.com/userguide/variables-and-constants$constants - cancel show "not local" ?
 		End Function
 	#tag EndEvent
 	#tag Event
@@ -306,7 +423,7 @@ End
 	#tag Event
 		Sub Change()
 		  
-		  select case true
+		  Select Case True
 		    
 		  case me.listindex < 0
 		    
@@ -314,11 +431,7 @@ End
 		    
 		    // ok look up the right source html and show that
 		    
-		    dim rs as recordset = db.sqlselect("select * from cached_blobs where cached_page_id = (select cached_page_id from cached_page_descriptions where cached_description_id = " + str(me.rowtag(me.listindex).int64Value) + ")" )
-		    
-		    dim htmlText as string = replaceall(htmlwrapper,"<!-- content --><!-- /content -->", rs.field("page_source").StringValue)
-		    
-		    htmlviewer1.LoadPage(htmltext, nil)
+		    ShowPageWithID( Me.rowtag(Me.listindex).int64Value )
 		    
 		  end select
 		  
@@ -333,6 +446,20 @@ End
 		  else
 		    loadsearchresults()
 		  end if
+		  
+		End Sub
+	#tag EndEvent
+#tag EndEvents
+#tag Events mOneShotTimer
+	#tag Event
+		Sub Action()
+		  If mDBKeyToLoad <> "" Then
+		    
+		    ShowPageWithName( mDBKeyToLoad )
+		    
+		    mDBKeyToLoad = ""
+		    
+		  End If
 		  
 		End Sub
 	#tag EndEvent

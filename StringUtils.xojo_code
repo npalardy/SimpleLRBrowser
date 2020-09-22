@@ -1,5 +1,11 @@
 #tag Module
 Protected Module StringUtils
+	#tag Method, Flags = &h0
+		Function BeginsWith(extends s as String, starts as string) As boolean
+		  return s.Left(Len(starts)) = starts
+		End Function
+	#tag EndMethod
+
 	#tag Method, Flags = &h1
 		Protected Function EditDistance(s1 As String, s2 As String) As Integer
 		  // Return the Levenshein distance, aka the edit distance,

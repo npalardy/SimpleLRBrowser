@@ -3,11 +3,23 @@ Protected Class App
 Inherits Application
 	#tag Event
 		Sub Open()
-		  modGTK3.initGtkEntryFix
-		  modGTK3.initGtkWidgetHeightFix
-		  modGTK3.InitGlobalGTK3Style
+		  #If targetLinux
+		    modGTK3.initGtkEntryFix
+		    modGTK3.initGtkWidgetHeightFix
+		    modGTK3.InitGlobalGTK3Style
+		  #EndIf
+		  
 		End Sub
 	#tag EndEvent
+
+
+	#tag MenuHandler
+		Function FileOpen() As Boolean Handles FileOpen.Action
+			
+			Return True
+			
+		End Function
+	#tag EndMenuHandler
 
 
 	#tag Constant, Name = kEditClear, Type = String, Dynamic = False, Default = \"&Delete", Scope = Public
