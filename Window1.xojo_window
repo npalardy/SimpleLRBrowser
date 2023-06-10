@@ -3,7 +3,6 @@ Begin Window Window1
    BackColor       =   &cFFFFFF00
    Backdrop        =   0
    CloseButton     =   True
-   Compatibility   =   ""
    Composite       =   True
    Frame           =   0
    FullScreen      =   False
@@ -11,7 +10,7 @@ Begin Window Window1
    HasBackColor    =   False
    Height          =   600
    ImplicitInstance=   True
-   LiveResize      =   True
+   LiveResize      =   "True"
    MacProcID       =   0
    MaxHeight       =   32000
    MaximizeButton  =   True
@@ -155,51 +154,22 @@ End
 #tag EndWindow
 
 #tag WindowCode
-	#tag MenuHandler
-		Function FileOpen() As Boolean Handles FileOpen.Action
-			db = New sqlitedatabase
-			
-			#If TargetMacOS Then
-			Dim dlog As New SelectXojoVersionDlog
-			
-			Dim appBundleFile As Folderitem = dlog.ShowModal
-			
-			try
-			db.DatabaseFile = appBundleFile.Child("Contents").Child("Resources").CHild("Language Reference").Child("XojoLangRefDB")
-			Catch noe As NilObjectException
-			db.DatabaseFile = nil
-			End Try
-			#Else
-			Dim dlog As New OpenDialog
-			
-			dlog.ActionButtonCaption = "Open"
-			dlog.CancelButtonCaption = "Cancel"
-			dlog.MultiSelect = False
-			dlog.PromptText = "Select a Xojo Language Reference DB. This is next to the IDE in Xojo Resources > Language Reference next to the IDE"
-			
-			db.DatabaseFile = dlog.ShowModal
-			#EndIf
-			
-			If db.DatabaseFile Is Nil Then
-			db = Nil
-			Return True
-			End If
-			
-			if db.Connect = false then
-			db = nil
-			else
-			reloadlistbox()
-			end if
-			
-			Return True
-			
-		End Function
-	#tag EndMenuHandler
-
+	#tag Method, Flags = &h0
+		Sub Constructor(db as SQLITEDatabase)
+		  // Calling the overridden superclass constructor.
+		  Super.Constructor
+		  
+		  Self.mdb = db
+		  
+		  reloadlistbox
+		  
+		  
+		End Sub
+	#tag EndMethod
 
 	#tag Method, Flags = &h1
 		Protected Sub loadsearchresults()
-		  if db is nil then
+		  If mDB Is Nil Then
 		    return
 		  end if
 		  
@@ -207,7 +177,7 @@ End
 		  
 		  dim target as string = trim (textfield1.text) 
 		  
-		  dim rs as recordset = db.sqlselect("select id, title from cached_descriptions where title like '%" + target + "%' order by title")
+		  dim rs as recordset = mDB.sqlselect("select id, title from cached_descriptions where title like '%" + target + "%' order by title")
 		  
 		  dim distances() as integer
 		  dim titles() as string
@@ -242,7 +212,7 @@ End
 
 	#tag Method, Flags = &h1
 		Protected Sub reloadlistbox()
-		  If db Is Nil Then 
+		  If mDB Is Nil Then 
 		    return
 		  end if
 		  
@@ -250,7 +220,7 @@ End
 		  
 		  Listbox1.DeleteAllRows
 		  
-		  dim rs as recordset = db.SQLSelect("select distinct type from cached_descriptions order by type")
+		  dim rs as recordset = mDB.SQLSelect("select distinct type from cached_descriptions order by type")
 		  
 		  while rs <> nil and rs.eof <> true
 		    
@@ -266,7 +236,7 @@ End
 		Private Sub ShowPageWithID(pageID as Int64)
 		  // ok look up the right source html and show that
 		  
-		  Dim rs As recordset = db.sqlselect("select * from cached_blobs where cached_page_id = (select cached_page_id from cached_page_descriptions where cached_description_id = " + Str(pageID) + ")" )
+		  Dim rs As recordset = mDB.sqlselect("select * from cached_blobs where cached_page_id = (select cached_page_id from cached_page_descriptions where cached_description_id = " + Str(pageID) + ")" )
 		  
 		  If rs Is Nil Then
 		    break
@@ -282,7 +252,7 @@ End
 
 	#tag Method, Flags = &h21
 		Private Sub ShowPageWithName(pageName as string)
-		  Dim rs As recordset = db.sqlselect("select id, title from cached_descriptions where title like '" + Trim(pageName) + "'")
+		  Dim rs As recordset = mDB.sqlselect("select id, title from cached_descriptions where title like '" + Trim(pageName) + "'")
 		  
 		  If rs Is Nil Then
 		    Break
@@ -290,7 +260,7 @@ End
 		  End If
 		  // ok look up the right source html and show that
 		  
-		  rs = db.sqlselect("select * from cached_blobs where cached_page_id = (select cached_page_id from cached_page_descriptions where cached_description_id = " + Str(rs.field("id").Int64Value) + ")" )
+		  rs = mDB.sqlselect("select * from cached_blobs where cached_page_id = (select cached_page_id from cached_page_descriptions where cached_description_id = " + Str(rs.field("id").Int64Value) + ")" )
 		  
 		  If rs Is Nil Then
 		    Break
@@ -306,7 +276,7 @@ End
 
 
 	#tag Property, Flags = &h1
-		Protected db As sqlitedatabase
+		Protected mDB As sqlitedatabase
 	#tag EndProperty
 
 	#tag Property, Flags = &h1
@@ -327,6 +297,7 @@ End
 		  Const allowload = False
 		  
 		  Select Case  True
+		    
 		  Case url.beginswith("about:blank") 
 		    // "about:blank" - do not cancel and allow this to load
 		    Return allowload
@@ -345,11 +316,9 @@ End
 		    
 		  Else
 		    
-		    Break
-		    
 		    #If TargetMacOS
 		      
-		      If url.BeginsWith("applewebdata://") then
+		      If url.BeginsWith("applewebdata://") Then
 		        // strip off applewebdata:// <GUID> /
 		        
 		        // find the remainder in the DB
@@ -365,7 +334,7 @@ End
 		        Dim tmpURL As String = url.Mid(Len("applewebdata://")+1)
 		        Dim parts() As String = tmpurl.Split("/")
 		        
-		        if parts.Ubound > 0 then
+		        If parts.Ubound > 0 Then
 		          
 		          tmpUrl = parts(1).Replace(".html", "")
 		          
@@ -376,28 +345,41 @@ End
 		        
 		        Return cancelLoad
 		        
-		      Elseif url.BeginsWith("http://") Or url.BeginsWith("https://") Then
-		        // http://developer.xojo.com/userguide/variables-and-constants$constants - cancel show "not local" ?
-		        // we could ASK if they want to open this or not ?
-		        
-		        MsgBox "The url '" + url + "' is not local"
-		        
-		        Return cancelLoad
-		        
 		      End If
-		      
-		    #ElseIf TargetWindows
-		      
-		    #ElseIf TargetLinux
-		      
 		    #EndIf
+		    
+		    If url.BeginsWith("http://") Or url.BeginsWith("https://") Then
+		      // http://developer.xojo.com/userguide/variables-and-constants$constants - cancel show "not local" ?
+		      // we could ASK if they want to open this or not ?
+		      
+		      MsgBox "The url '" + url + "' is not local"
+		      
+		      Return cancelLoad
+		      
+		    ElseIf url.BeginsWith("/") Then
+		      
+		      Dim tmpURL As String = url
+		      
+		      While tmpURL.Left(1) = "/" And url <> ""
+		        
+		        tmpURL = tmpURL.Mid(2)
+		      Wend
+		      
+		      mOneShotTimer.mode = Timer.ModeSingle
+		      mDBKeyToLoad = tmpURL
+		      
+		      Return allowload
+		      
+		    End If
 		    
 		  End Select
 		  
 		End Function
 	#tag EndEvent
 	#tag Event
-		Function NewWindow() As HTMLViewer
+		Function NewWindow(url as String) As HTMLViewer
+		  #Pragma unused url
+		  
 		  break
 		End Function
 	#tag EndEvent
@@ -408,7 +390,7 @@ End
 		  
 		  dim whatType as string = me.cell(row, 0)
 		  
-		  dim rs as recordset = db.sqlselect("select id, title from cached_descriptions where type = '" + Trim(whatType) + "'")
+		  dim rs as recordset = mDB.sqlselect("select id, title from cached_descriptions where type = '" + Trim(whatType) + "'")
 		  
 		  while rs <> nil and rs.eof <> true
 		    
@@ -466,74 +448,43 @@ End
 #tag EndEvents
 #tag ViewBehavior
 	#tag ViewProperty
-		Name="Name"
-		Visible=true
-		Group="ID"
-		Type="String"
-		EditorType="String"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="Interfaces"
-		Visible=true
-		Group="ID"
-		Type="String"
-		EditorType="String"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="Super"
-		Visible=true
-		Group="ID"
-		Type="String"
-		EditorType="String"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="Width"
-		Visible=true
-		Group="Size"
-		InitialValue="600"
-		Type="Integer"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="Height"
-		Visible=true
-		Group="Size"
-		InitialValue="400"
-		Type="Integer"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="MinWidth"
+		Name="MinimumWidth"
 		Visible=true
 		Group="Size"
 		InitialValue="64"
 		Type="Integer"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="MinHeight"
+		Name="MinimumHeight"
 		Visible=true
 		Group="Size"
 		InitialValue="64"
 		Type="Integer"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="MaxWidth"
+		Name="MaximumWidth"
 		Visible=true
 		Group="Size"
 		InitialValue="32000"
 		Type="Integer"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="MaxHeight"
+		Name="MaximumHeight"
 		Visible=true
 		Group="Size"
 		InitialValue="32000"
 		Type="Integer"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="Frame"
+		Name="Type"
 		Visible=true
 		Group="Frame"
 		InitialValue="0"
-		Type="Integer"
+		Type="Types"
 		EditorType="Enum"
 		#tag EnumValues
 			"0 - Document"
@@ -550,92 +501,43 @@ End
 		#tag EndEnumValues
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="Title"
-		Visible=true
-		Group="Frame"
-		InitialValue="Untitled"
-		Type="String"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="CloseButton"
+		Name="HasCloseButton"
 		Visible=true
 		Group="Frame"
 		InitialValue="True"
 		Type="Boolean"
-		EditorType="Boolean"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="Resizeable"
+		Name="HasMaximizeButton"
 		Visible=true
 		Group="Frame"
 		InitialValue="True"
 		Type="Boolean"
-		EditorType="Boolean"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="MaximizeButton"
+		Name="HasMinimizeButton"
 		Visible=true
 		Group="Frame"
 		InitialValue="True"
 		Type="Boolean"
-		EditorType="Boolean"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="MinimizeButton"
-		Visible=true
-		Group="Frame"
-		InitialValue="True"
-		Type="Boolean"
-		EditorType="Boolean"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="FullScreenButton"
+		Name="HasFullScreenButton"
 		Visible=true
 		Group="Frame"
 		InitialValue="False"
 		Type="Boolean"
-		EditorType="Boolean"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
-		Name="Composite"
-		Group="OS X (Carbon)"
-		InitialValue="False"
-		Type="Boolean"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="MacProcID"
-		Group="OS X (Carbon)"
-		InitialValue="0"
-		Type="Integer"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="FullScreen"
-		Group="Behavior"
-		InitialValue="False"
-		Type="Boolean"
-		EditorType="Boolean"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="ImplicitInstance"
-		Visible=true
-		Group="Behavior"
-		InitialValue="True"
-		Type="Boolean"
-		EditorType="Boolean"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="LiveResize"
-		Group="Behavior"
-		InitialValue="True"
-		Type="Boolean"
-		EditorType="Boolean"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="Placement"
+		Name="DefaultLocation"
 		Visible=true
 		Group="Behavior"
 		InitialValue="0"
-		Type="Integer"
+		Type="Locations"
 		EditorType="Enum"
 		#tag EnumValues
 			"0 - Default"
@@ -646,40 +548,132 @@ End
 		#tag EndEnumValues
 	#tag EndViewProperty
 	#tag ViewProperty
+		Name="HasBackgroundColor"
+		Visible=true
+		Group="Background"
+		InitialValue="False"
+		Type="Boolean"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="BackgroundColor"
+		Visible=true
+		Group="Background"
+		InitialValue="&hFFFFFF"
+		Type="Color"
+		EditorType="Color"
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="Name"
+		Visible=true
+		Group="ID"
+		InitialValue=""
+		Type="String"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="Interfaces"
+		Visible=true
+		Group="ID"
+		InitialValue=""
+		Type="String"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="Super"
+		Visible=true
+		Group="ID"
+		InitialValue=""
+		Type="String"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="Width"
+		Visible=true
+		Group="Size"
+		InitialValue="600"
+		Type="Integer"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="Height"
+		Visible=true
+		Group="Size"
+		InitialValue="400"
+		Type="Integer"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="Title"
+		Visible=true
+		Group="Frame"
+		InitialValue="Untitled"
+		Type="String"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="Resizeable"
+		Visible=true
+		Group="Frame"
+		InitialValue="True"
+		Type="Boolean"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="Composite"
+		Visible=false
+		Group="OS X (Carbon)"
+		InitialValue="False"
+		Type="Boolean"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="MacProcID"
+		Visible=false
+		Group="OS X (Carbon)"
+		InitialValue="0"
+		Type="Integer"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="FullScreen"
+		Visible=false
+		Group="Behavior"
+		InitialValue="False"
+		Type="Boolean"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
+		Name="ImplicitInstance"
+		Visible=true
+		Group="Behavior"
+		InitialValue="True"
+		Type="Boolean"
+		EditorType=""
+	#tag EndViewProperty
+	#tag ViewProperty
 		Name="Visible"
 		Visible=true
 		Group="Behavior"
 		InitialValue="True"
 		Type="Boolean"
-		EditorType="Boolean"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="HasBackColor"
-		Visible=true
-		Group="Background"
-		InitialValue="False"
-		Type="Boolean"
-	#tag EndViewProperty
-	#tag ViewProperty
-		Name="BackColor"
-		Visible=true
-		Group="Background"
-		InitialValue="&hFFFFFF"
-		Type="Color"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
 		Name="Backdrop"
 		Visible=true
 		Group="Background"
+		InitialValue=""
 		Type="Picture"
-		EditorType="Picture"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
 		Name="MenuBar"
 		Visible=true
 		Group="Menus"
+		InitialValue=""
 		Type="MenuBar"
-		EditorType="MenuBar"
+		EditorType=""
 	#tag EndViewProperty
 	#tag ViewProperty
 		Name="MenuBarVisible"
@@ -687,6 +681,6 @@ End
 		Group="Deprecated"
 		InitialValue="True"
 		Type="Boolean"
-		EditorType="Boolean"
+		EditorType=""
 	#tag EndViewProperty
 #tag EndViewBehavior
