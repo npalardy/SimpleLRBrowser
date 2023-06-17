@@ -157,6 +157,12 @@ Inherits Application
 	#tag EndMethod
 
 
+	#tag Note, Name = Untitled
+		
+		
+	#tag EndNote
+
+
 	#tag Constant, Name = kEditClear, Type = String, Dynamic = False, Default = \"&Delete", Scope = Public
 		#Tag Instance, Platform = Windows, Language = Default, Definition  = \"&Delete"
 		#Tag Instance, Platform = Linux, Language = Default, Definition  = \"&Delete"
