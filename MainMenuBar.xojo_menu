@@ -15,6 +15,14 @@ Begin Menu MainMenuBar
          AutoEnable = True
          SubMenu = True
          Visible = True
+         Begin MenuItem OpenSelect
+            SpecialMenu = 0
+            Index = -2147483648
+            Text = "Select ..."
+            AutoEnabled = True
+            AutoEnable = True
+            Visible = True
+         End
          Begin MenuItem open2019r11
             SpecialMenu = 0
             Index = -2147483648
@@ -35,14 +43,6 @@ Begin Menu MainMenuBar
             SpecialMenu = 0
             Index = -2147483648
             Text = "2021r3.1"
-            AutoEnabled = True
-            AutoEnable = True
-            Visible = True
-         End
-         Begin MenuItem OpenSelect
-            SpecialMenu = 0
-            Index = -2147483648
-            Text = "Select ..."
             AutoEnabled = True
             AutoEnable = True
             Visible = True
