@@ -112,6 +112,9 @@ Inherits Application
 		    Dim ides() As Folderitem = MacOS.FindFilesByBundleID("com.xojo.xojo")
 		    Dim f As folderitem 
 		    
+		    Dim itemsToAdd() As menuItem
+		    Dim itemsToSortBy() As String
+		    
 		    For Each origF As FolderItem In IDES
 		      
 		      Try
@@ -136,9 +139,16 @@ Inherits Application
 		          mi.Text = "Open " + origF.Name
 		          mi.AutoEnable = True
 		          
-		          fileOpen.Append mi
+		          itemsToAdd.Append mi
+		          itemsToSortBy.append mi.Text
 		        End If
 		      End Try
+		    Next 
+		    
+		    itemsToSortBy.sortwith itemsToAdd
+		    
+		    For Each item As menuItem In itemsToAdd
+		      fileopen.Append item
 		    Next 
 		    
 		  #EndIf
