@@ -39,6 +39,14 @@ Begin Menu MainMenuBar
             AutoEnable = True
             Visible = True
          End
+         Begin MenuItem OpenSelect
+            SpecialMenu = 0
+            Index = -2147483648
+            Text = "Select ..."
+            AutoEnabled = True
+            AutoEnable = True
+            Visible = True
+         End
       End
       Begin QuitMenuItem FileQuit
          SpecialMenu = 0

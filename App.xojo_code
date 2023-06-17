@@ -44,6 +44,96 @@ Inherits Application
 		End Function
 	#tag EndMenuHandler
 
+	#tag MenuHandler
+		Function OpenSelect() As Boolean Handles OpenSelect.Action
+			// open a Window1 instance to show the selected LR db
+			
+			Dim dlg As New OpenFileDialog
+			dlg.title = "Select a Language Reference"
+			dlg.PromptText = "Select a Xojo Language Reference database to open"
+			
+			Dim f As folderitem = dlg.ShowModal
+			
+			// it may be they selected the .APP bundle
+			#If targetmacOS 
+			If (f.Directory = True) And (f.Name.EndsWith(".app") = True) Then
+			// see if there is a Contents/Resources/Language Reference/XojoLangRefDB
+			Try
+			f = f.child("Contents").Child("Resources").Child("Language Reference").Child("XojoLangRefDB") 
+			If (f Is Nil) Or (f.exists = False) Or (f.Directory = True) Then
+			Return True
+			End If
+			Catch NilObjectException
+			Return True
+			End Try
+			#Else
+			If 1 = 2 Then
+			#EndIf
+			
+			ElseIf (f Is Nil) Or (f.exists = False) Or (f.Directory = True) Then
+			Return True
+			End If
+			
+			// ok IS THIS a LR db ?
+			// if so these should exist
+			// cached_pages
+			// cached_descriptions
+			// cached_page_descriptions
+			// cached_pagefullname_X_filename_map
+			// cached_images
+			// cached_page_images
+			// cached_blobs
+			// fullText_segments
+			// fullText_segdir
+			// fullText_docsize
+			// fullText_stat
+			// fullText
+			
+			Dim db As New sqlitedatabase
+			
+			db.databasefile = SpecialFolder.Resource("XojoLangRefDB 2019r1.1")
+			
+			Call db.connect
+			If db.Error Then 
+			Return True
+			End If
+			
+			Dim rs As recordset = db.SQLSelect("select count(*) from sqlite_master where type = 'table' and name not in ( " +_
+			" 'cached_pages', 'cached_descriptions' , 'cached_page_descriptions', 'cached_pagefullname_X_filename_map' , " +_
+			" 'cached_images', 'cached_page_images', 'cached_blobs', 'fullText_segments', 'fullText_segdir' , 'fullText_docsize', " +_
+			" 'fullText_stat', 'fullText' " +_
+			")")
+			
+			If rs Is Nil Or rs.eof And rs.bof Then
+			Return True
+			End If
+			
+			If rs.idxField(1).IntegerValue <> 0 Then
+			Return True
+			End If
+			
+			Dim w As Window = FirstWindowWithTitle(f.NativePath)
+			
+			If w Is Nil Then
+			
+			// Dim db As New sqlitedatabase
+			// 
+			// db.databasefile = SpecialFolder.Resource("XojoLangRefDB 2019r1.1")
+			// 
+			// Call db.connect
+			
+			w = New Window1(db)
+			
+			w.Title = f.NativePath
+			End If
+			
+			w.show
+			
+			Return True
+			
+		End Function
+	#tag EndMenuHandler
+
 
 	#tag Method, Flags = &h1
 		Protected Sub DoOpen2019r11()
