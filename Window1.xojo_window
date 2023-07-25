@@ -39,9 +39,9 @@ Begin Window Window1
       LockTop         =   True
       Renderer        =   0
       Scope           =   2
-      TabIndex        =   0
+      TabIndex        =   2
       TabPanelIndex   =   0
-      TabStop         =   True
+      TabStop         =   False
       Top             =   28
       Visible         =   True
       Width           =   708
@@ -126,7 +126,7 @@ Begin Window Window1
       Password        =   False
       ReadOnly        =   False
       Scope           =   2
-      TabIndex        =   2
+      TabIndex        =   0
       TabPanelIndex   =   0
       TabStop         =   True
       Text            =   ""
@@ -172,7 +172,7 @@ Begin Window Window1
       Scope           =   2
       TabIndex        =   3
       TabPanelIndex   =   0
-      TabStop         =   True
+      TabStop         =   False
       TextFont        =   "System"
       TextSize        =   0.0
       TextUnit        =   0
@@ -204,7 +204,7 @@ Begin Window Window1
       Scope           =   2
       TabIndex        =   4
       TabPanelIndex   =   0
-      TabStop         =   True
+      TabStop         =   False
       TextFont        =   "System"
       TextSize        =   0.0
       TextUnit        =   0
@@ -218,6 +218,14 @@ End
 #tag EndWindow
 
 #tag WindowCode
+	#tag Event
+		Sub Open()
+		  TextField1.SetFocus
+		  
+		End Sub
+	#tag EndEvent
+
+
 	#tag Method, Flags = &h1
 		Protected Sub AddToUrlStack(pageName as string)
 		  // System.debuglog CurrentMethodName + " add to stack " + pageName
