@@ -1,5 +1,5 @@
 #tag Window
-Begin Window Window1
+Begin Window LRWindow
    BackColor       =   &cFFFFFF00
    Backdrop        =   0
    CloseButton     =   True
@@ -252,14 +252,25 @@ End
 	#tag EndMethod
 
 	#tag Method, Flags = &h0
-		Sub Constructor(db as SQLITEDatabase)
+		Sub Constructor(f as folderitem)
 		  // Calling the overridden superclass constructor.
 		  Super.Constructor
 		  
-		  Self.mdb = db
+		  Me.m_baseFolderitem = f
 		  
-		  reloadlistbox
-		  
+		  If f.Directory = False Then
+		    Dim db As New sqlitedatabase
+		    
+		    db.databasefile = f
+		    
+		    Call db.connect
+		    
+		    Self.mdb = db
+		    
+		    reloadlistbox
+		  Else
+		    Break
+		  End If
 		  
 		End Sub
 	#tag EndMethod
@@ -486,6 +497,15 @@ End
 	#tag EndMethod
 
 
+	#tag ComputedProperty, Flags = &h0
+		#tag Getter
+			Get
+			  return m_baseFolderitem
+			End Get
+		#tag EndGetter
+		ItemShowing As folderitem
+	#tag EndComputedProperty
+
 	#tag Property, Flags = &h1
 		Protected mDB As sqlitedatabase
 	#tag EndProperty
@@ -496,6 +516,10 @@ End
 
 	#tag Property, Flags = &h1
 		Protected mIsStackMove As boolean
+	#tag EndProperty
+
+	#tag Property, Flags = &h1
+		Protected m_baseFolderitem As Folderitem
 	#tag EndProperty
 
 	#tag Property, Flags = &h1
@@ -652,6 +676,33 @@ End
 		    
 		  end select
 		  
+		End Sub
+	#tag EndEvent
+	#tag Event
+		Sub GotFocus()
+		  If Me.SelectedRowIndex < 0 And Me.RowCount > 0 Then
+		    Me.SelectedRowIndex = 0
+		  End If
+		End Sub
+	#tag EndEvent
+	#tag Event
+		Function KeyDown(Key As String) As Boolean
+		  If (key = &u0A Or key = &u0D) Then
+		    Return True
+		  Else
+		    Return False
+		  End If
+		End Function
+	#tag EndEvent
+	#tag Event
+		Sub KeyUp(Key As String)
+		  If Me.SelectedRowIndex < 0 Then 
+		    Return
+		  End If
+		  
+		  If Me.RowIsFolder(Me.SelectedRowIndex) And (key = &u0A Or key = &u0D) Then
+		    Me.Expanded(Me.SelectedRowIndex) = Not Me.Expanded(Me.SelectedRowIndex)
+		  End If
 		End Sub
 	#tag EndEvent
 #tag EndEvents

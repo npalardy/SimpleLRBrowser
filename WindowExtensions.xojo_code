@@ -68,6 +68,27 @@ Protected Module WindowExtensions
 	#tag EndMethod
 
 	#tag Method, Flags = &h0
+		Function FirstWindowShowing(f as folderitem) As Window
+		  For i As Integer = 0 To WindowCount - 1
+		    
+		    Dim thisWindow As  Window = Window(i)
+		    If thisWindow IsA LRWindow Then
+		      Dim thisLRWindow As LRWindow = LRWindow(thisWindow)
+		      
+		      If thisLRWindow.ItemShowing = f Then
+		        Return Window(i)
+		      End If
+		      
+		    End If
+		    
+		  Next
+		  
+		  Return Nil
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
 		Function FirstWindowWithTitle(title as string) As Window
 		  For i As Integer = 0 To WindowCount - 1
 		    
