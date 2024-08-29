@@ -79,15 +79,23 @@ Inherits Application
 		  
 		  If w Is Nil Then
 		    
-		    // Dim db As New sqlitedatabase
-		    // 
-		    // db.databasefile = SpecialFolder.Resource("XojoLangRefDB 2019r1.1")
-		    // 
-		    // Call db.connect
-		    
 		    w = New LRWindow(f)
 		    
 		    w.Title = f.NativePath
+		    
+		    Dim knownDBs() As String = Preferences.ReadStringArray("Known LR DB's")
+		    If knownDBs Is Nil Then
+		      knownDBS = Array("")
+		      Redim knownDBS(-1)
+		    End If
+		    
+		    If knownDBs.IndexOf(f.NativePath) < 0 then
+		      knownDBs.append f.NativePath
+		      Preferences.WriteStringArray("Known LR DB's", knownDBs)
+		      
+		      FindLanguageReferenceDatabases
+		    End If
+		    
 		  End If
 		  
 		  w.show
@@ -101,12 +109,32 @@ Inherits Application
 		Protected Sub FindLanguageReferenceDatabases()
 		  #If TargetMacOS
 		    
-		    // find all the Xojo ide's
-		    Dim ides() As Folderitem = MacOS.FindFilesByBundleID("com.xojo.xojo")
 		    Dim f As folderitem 
-		    
 		    Dim itemsToAdd() As menuItem
 		    Dim itemsToSortBy() As String
+		    
+		    Dim knownDBs() As String = Preferences.ReadStringArray("Known LR DB's")
+		    For Each knownPath As String In knownDBs
+		      Try
+		        f = New Folderitem(knownPath, folderitem.PathTypeNative)
+		        
+		        If f.Exists And itemsToSortBy.indexof("Open " + knownPath) < 0 Then
+		          Dim mi As New foundLRMenuItem
+		          mi.Tag = f
+		          mi.Text = "Open " + knownPath
+		          mi.AutoEnable = True
+		          
+		          itemsToAdd.Append mi
+		          itemsToSortBy.append mi.Text
+		        End If
+		        
+		      Catch
+		        Break
+		      End Try
+		    Next
+		    
+		    // find all the Xojo ide's
+		    Dim ides() As Folderitem = MacOS.FindFilesByBundleID("com.xojo.xojo")
 		    
 		    For Each origF As FolderItem In IDES
 		      
@@ -176,6 +204,14 @@ Inherits Application
 		    Next 
 		    
 		    itemsToSortBy.sortwith itemsToAdd
+		    
+		    For i As Integer = fileopen.Count - 1 DownTo 0
+		      If fileopen.Item(i) IsA foundNewLocalLRMenuItem Then
+		        fileopen.Remove(i)
+		      ElseIf fileopen.Item(i) IsA foundLRMenuItem Then
+		        fileopen.Remove(i)
+		      End If
+		    Next
 		    
 		    For Each item As menuItem In itemsToAdd
 		      fileopen.Append item

@@ -29,12 +29,12 @@ Inherits MenuItem
 		  
 		  If w Is Nil Then
 		    
-		    // w = New Window1(db)
-		    // 
-		    // w.Title = f.NativePath
+		    w = New NewLRWindow(f)
+		    
+		    w.Title = f.NativePath
 		  End If
 		  
-		  // w.show
+		  w.show
 		  
 		  Return 
 		  
